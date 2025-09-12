@@ -67,7 +67,7 @@ async function loadExcelFile(file) {
     
     try {
         console.log('Loading file...');
-        console.log(typeof DataLoader);  
+        alert(typeof DataLoader);  
         console.log(typeof dataLoader);  
         console.log(dataLoader);
 
