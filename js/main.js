@@ -67,6 +67,12 @@ async function loadExcelFile(file) {
     
     try {
         console.log('Loading file...');
+        console.log(typeof DataLoader);  
+        console.log(typeof dataLoader);  
+        console.log(dataLoader);
+
+
+
         
         // Load the file using dataLoader
         const data = await dataLoader.loadFromFile(file);
