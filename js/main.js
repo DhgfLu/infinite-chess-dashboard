@@ -1,26 +1,24 @@
-// main.js - Simplified Main Controller (Manual Upload Only)
+// main.js - Main Controller with Student Object Processing
 
 // Application state
 const app = {
     data: null,
+    students: {},  // Will store student objects
     isLoaded: false
 };
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Excel Loader Ready - Manual Upload Only');
     setupEventListeners();
 });
 
-/**
- * Set up event listeners
- */
+// Set up event listeners
 function setupEventListeners() {
     // File input change event
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
         fileInput.addEventListener('change', handleFileSelect);
-        console.log('File input listener attached');
+        console.log('========== User uploaded file ===========');
     }
     
     // Reload button
@@ -32,9 +30,6 @@ function setupEventListeners() {
     }
 }
 
-/**
- * Handle file selection
- */
 async function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -59,26 +54,18 @@ async function handleFileSelect(event) {
     await loadExcelFile(file);
 }
 
-/**
- * Load Excel file
- */
 async function loadExcelFile(file) {
     console.log('Starting to load file...');
     showLoading(true);
     hideMessages();
     
-    try {
-        // Check if dataLoader exists
-        if (typeof dataLoader === 'undefined') {
-            throw new Error('dataLoader is not defined. Check if dataLoader.js is loaded correctly.');
-        }
-        
-        console.log('dataLoader found, loading file...');
+    try {   
+        // console.log('dataLoader found, loading file...');
         
         // Load the file using dataLoader
         const data = await dataLoader.loadFromFile(file);
         
-        // Store in app state
+        // Store raw data
         app.data = data;
         app.isLoaded = true;
         
@@ -86,16 +73,18 @@ async function loadExcelFile(file) {
         console.log('Columns found:', data.headers);
         console.log('Rows found:', data.rows.length);
         
+        // Process students
+        processStudents(data);
+        
         // Show success message
-        showSuccess(`成功載入 ${file.name} - ${data.rows.length} 筆資料`);
+        const studentCount = Object.keys(app.students).length;
+        showSuccess(`成功載入 ${file.name} - ${data.rows.length} 筆資料, ${studentCount} 位學生`);
         
         // Display data summary
         displayDataSummary(file.name);
         
-        // Print summary to console for debugging
-        if (typeof dataLoader.printSummary === 'function') {
-            dataLoader.printSummary();
-        }
+        // Display student summary
+        displayStudentSummary();
         
     } catch (error) {
         console.error('❌ Error loading file:', error);
@@ -103,6 +92,62 @@ async function loadExcelFile(file) {
     } finally {
         showLoading(false);
     }
+}
+
+function processStudents(data) {
+    console.log('📚 Processing student data...');
+    
+    // Reset students object
+    app.students = {};
+
+    // First row contains headers (column names)
+    const headers = data.headers;
+    
+    // Find the column index for student name
+    const studentNameColumns = ['學生姓名', 'Student Name', 'Student', '姓名', 'Name'];
+    let studentNameColumn = null;
+    
+    // Find which column name exists in the data
+    for (const possibleName of studentNameColumns) {
+        if (headers.includes(possibleName)) {
+            studentNameColumn = possibleName;
+            break;
+        }
+    }
+    
+    if (!studentNameColumn) {
+        console.warn('Warning: Could not find student name column');
+        console.log('Available columns:', headers);
+        return;
+    }
+    
+    console.log(`Found student name column: "${studentNameColumn}"`);
+    
+    // Process each row
+    data.rows.forEach((row, index) => {
+        const studentName = row[studentNameColumn];
+        
+        // Skip if no student name
+        if (!studentName || studentName.trim() === '') {
+            console.log(`Skipping row ${index + 1}: No student name`);
+            return;
+        }
+        
+        // Create student object if doesn't exist
+        app.students[studentName] = row;
+        console.log(`Student ${index + 1}: ${studentName}`);
+    });
+    
+    console.log(`✅ Processed ${Object.keys(app.students).length} students`);
+    console.log('Students:', app.students);
+}
+
+/**
+ * Extract scores from a row
+ */
+function extractScores(student, row) {
+    // Extract each type of score
+
 }
 
 /**
@@ -135,14 +180,37 @@ function displayDataSummary(fileName) {
                 </span>
             `).join('');
     }
+}
+
+/**
+ * Display student summary
+ */
+function displayStudentSummary() {
+    console.log('📊 Student Summary:');
+    console.log('=================');
     
-    // Log first few rows for debugging
-    console.log('📊 Data Preview:');
-    console.log('Headers:', app.data.headers);
-    console.log('First 3 rows:');
-    app.data.rows.slice(0, 3).forEach((row, index) => {
-        console.log(`Row ${index + 1}:`, row);
+    const students = Object.values(app.students);
+    
+    // Sort by name
+    students.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+    
+    students.forEach(student => {
+        console.log(`\n👤 ${student.name}:`);
+        console.log(`   觀察次數: ${student.observationCount}`);
+        console.log(`   情緒穩定: ${student.averages.emotional}`);
+        console.log(`   專注力: ${student.averages.focus}`);
+        console.log(`   社交互動: ${student.averages.social}`);
+        console.log(`   整體平均: ${student.overallAverage}`);
+        console.log(`   進步率: ${student.progress}%`);
+        console.log(`   志工: ${student.volunteerList.join(', ') || 'N/A'}`);
     });
+    
+    // Overall statistics
+    console.log('\n📈 Overall Statistics:');
+    console.log('=====================');
+    console.log(`Total Students: ${students.length}`);
+    console.log(`Total Observations: ${app.data.rows.length}`);
+    console.log(`Average Observations per Student: ${(app.data.rows.length / students.length).toFixed(1)}`);
 }
 
 // ========== UI Helper Functions ==========
@@ -187,37 +255,63 @@ function updateElement(id, value) {
 // ========== Debug Functions ==========
 
 window.debugApp = {
-    // Get loaded data
+    // Get all data
     getData: () => app.data,
     
-    // Get headers
-    getHeaders: () => app.data ? app.data.headers : null,
+    // Get all students
+    getStudents: () => app.students,
     
-    // Get rows
-    getRows: () => app.data ? app.data.rows : null,
+    // Get specific student
+    getStudent: (name) => app.students[name],
     
-    // Get specific row
-    getRow: (index) => app.data ? app.data.rows[index] : null,
+    // List all student names
+    listStudents: () => Object.keys(app.students),
     
-    // Search columns by name
-    searchColumn: (name) => {
-        if (!app.data) return 'No data loaded';
-        return app.data.headers.filter(h => h.includes(name));
+    // Get student stats
+    getStudentStats: (name) => {
+        const student = app.students[name];
+        if (!student) return 'Student not found';
+        return {
+            name: student.name,
+            observations: student.observationCount,
+            averages: student.averages,
+            overall: student.overallAverage,
+            progress: student.progress,
+            volunteers: student.volunteerList
+        };
+    },
+    
+    // Get top performers
+    getTopStudents: (n = 5) => {
+        return Object.values(app.students)
+            .sort((a, b) => b.overallAverage - a.overallAverage)
+            .slice(0, n)
+            .map(s => ({
+                name: s.name,
+                average: s.overallAverage,
+                progress: s.progress
+            }));
+    },
+    
+    // Get students needing attention
+    getNeedsAttention: (threshold = 3) => {
+        return Object.values(app.students)
+            .filter(s => s.overallAverage < threshold)
+            .map(s => ({
+                name: s.name,
+                average: s.overallAverage,
+                observations: s.observationCount
+            }));
     },
     
     // Get app state
-    getState: () => app,
-    
-    // Check if dataLoader exists
-    checkLoader: () => {
-        console.log('DataLoader class:', typeof DataLoader);
-        console.log('dataLoader instance:', typeof dataLoader);
-        if (typeof dataLoader !== 'undefined') {
-            console.log('dataLoader object:', dataLoader);
-        }
-    }
+    getState: () => app
 };
 
 // Log initialization
 console.log('main.js loaded successfully');
-console.log('Type debugApp.checkLoader() to verify dataLoader');
+console.log('After loading a file, use:');
+console.log('  debugApp.listStudents() - See all student names');
+console.log('  debugApp.getStudent("name") - Get specific student data');
+console.log('  debugApp.getTopStudents() - See top performers');
+console.log('  debugApp.getNeedsAttention() - See students who need help');
