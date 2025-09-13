@@ -133,8 +133,8 @@ function processStudents(data) {
             return;
         }
         
-        // Create student object if doesn't exist
-        app.students[studentName] = row;
+        // Create student object
+        app.students[studentName] = row; // create all the items in the header row
         console.log(`Student ${index + 1}: ${studentName}`);
     });
     
@@ -165,52 +165,28 @@ function displayDataSummary(fileName) {
         summaryDiv.classList.remove('hidden');
     }
     
-    // Update counts
+    // Update counts 資料列數 欄位數 檔案名稱
     updateElement('rowCount', app.data.rows.length);
     updateElement('colCount', app.data.headers.length);
     updateElement('fileName', fileName);
     
     // Display column list
-    const columnList = document.getElementById('columnList');
-    if (columnList) {
-        columnList.innerHTML = app.data.headers
-            .map(header => `
-                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm">
-                    ${header}
-                </span>
-            `).join('');
-    }
+    // const columnList = document.getElementById('columnList');
+    // if (columnList) {
+    //     columnList.innerHTML = app.data.headers
+    //         .map(header => `
+    //             <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+    //                 ${header}
+    //             </span>
+    //         `).join('');
+    // }
 }
 
-/**
- * Display student summary
- */
+// Display student summary
+// i intend to display the attirbutes of every studnt upon clicking on thier name
 function displayStudentSummary() {
     console.log('📊 Student Summary:');
     console.log('=================');
-    
-    const students = Object.values(app.students);
-    
-    // Sort by name
-    students.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
-    
-    students.forEach(student => {
-        console.log(`\n👤 ${student.name}:`);
-        console.log(`   觀察次數: ${student.observationCount}`);
-        console.log(`   情緒穩定: ${student.averages.emotional}`);
-        console.log(`   專注力: ${student.averages.focus}`);
-        console.log(`   社交互動: ${student.averages.social}`);
-        console.log(`   整體平均: ${student.overallAverage}`);
-        console.log(`   進步率: ${student.progress}%`);
-        console.log(`   志工: ${student.volunteerList.join(', ') || 'N/A'}`);
-    });
-    
-    // Overall statistics
-    console.log('\n📈 Overall Statistics:');
-    console.log('=====================');
-    console.log(`Total Students: ${students.length}`);
-    console.log(`Total Observations: ${app.data.rows.length}`);
-    console.log(`Average Observations per Student: ${(app.data.rows.length / students.length).toFixed(1)}`);
 }
 
 // ========== UI Helper Functions ==========
