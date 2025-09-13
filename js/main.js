@@ -1,4 +1,4 @@
-// main.js - Simplified Main Controller for File Upload Only
+// main.js - Simplified Main Controller (Manual Upload Only)
 
 // Application state
 const app = {
@@ -8,7 +8,7 @@ const app = {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Excel Loader Ready');
+    console.log('Excel Loader Ready - Manual Upload Only');
     setupEventListeners();
 });
 
@@ -16,16 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
  * Set up event listeners
  */
 function setupEventListeners() {
-    // File input change
+    // File input change event
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
         fileInput.addEventListener('change', handleFileSelect);
-    }
-    
-    // Load default button
-    const loadDefaultBtn = document.getElementById('loadDefaultBtn');
-    if (loadDefaultBtn) {
-        loadDefaultBtn.addEventListener('click', loadDefaultData);
+        console.log('File input listener attached');
     }
     
     // Reload button
@@ -42,9 +37,14 @@ function setupEventListeners() {
  */
 async function handleFileSelect(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('No file selected');
+        return;
+    }
     
     console.log('File selected:', file.name);
+    console.log('File size:', file.size, 'bytes');
+    console.log('File type:', file.type);
     
     // Check file type
     const validTypes = ['.xlsx', '.xls'];
@@ -55,6 +55,7 @@ async function handleFileSelect(event) {
         return;
     }
     
+    // Load the Excel file
     await loadExcelFile(file);
 }
 
@@ -62,17 +63,17 @@ async function handleFileSelect(event) {
  * Load Excel file
  */
 async function loadExcelFile(file) {
+    console.log('Starting to load file...');
     showLoading(true);
     hideMessages();
     
     try {
-        console.log('Loading file...');
-        // alert("typeof DataLoader", typeof DataLoader);  
-        alert(typeof dataLoader);  
-        // alert(dataLoader);
-
-
-
+        // Check if dataLoader exists
+        if (typeof dataLoader === 'undefined') {
+            throw new Error('dataLoader is not defined. Check if dataLoader.js is loaded correctly.');
+        }
+        
+        console.log('dataLoader found, loading file...');
         
         // Load the file using dataLoader
         const data = await dataLoader.loadFromFile(file);
@@ -81,70 +82,24 @@ async function loadExcelFile(file) {
         app.data = data;
         app.isLoaded = true;
         
-        console.log('File loaded successfully!');
+        console.log('✅ File loaded successfully!');
         console.log('Columns found:', data.headers);
         console.log('Rows found:', data.rows.length);
         
         // Show success message
-        showSuccess(`成功載入 ${file.name}`);
+        showSuccess(`成功載入 ${file.name} - ${data.rows.length} 筆資料`);
         
         // Display data summary
         displayDataSummary(file.name);
         
-        // Print to console for debugging
-        dataLoader.printSummary();
-        
-    } catch (error) {
-        console.error('Error loading file:', error);
-        showError(error.message);
-    } finally {
-        showLoading(false);
-    }
-}
-
-/**
- * Load default test.xlsx
- */
-async function loadDefaultData() {
-    showLoading(true);
-    hideMessages();
-    
-    try {
-        console.log('Loading default test.xlsx...');
-        
-        // Try to load test.xlsx from same folder
-        const response = await fetch('test.xlsx');
-        
-        if (!response.ok) {
-            throw new Error('找不到 test.xlsx 檔案');
+        // Print summary to console for debugging
+        if (typeof dataLoader.printSummary === 'function') {
+            dataLoader.printSummary();
         }
         
-        const arrayBuffer = await response.arrayBuffer();
-        
-        // Create a File object from the arrayBuffer
-        const file = new File([arrayBuffer], 'test.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        
-        // Use the same loadFromFile method
-        const data = await dataLoader.loadFromFile(file);
-        
-        // Store in app state
-        app.data = data;
-        app.isLoaded = true;
-        
-        console.log('Default file loaded successfully!');
-        
-        // Show success message
-        showSuccess('成功載入 test.xlsx');
-        
-        // Display data summary
-        displayDataSummary('test.xlsx');
-        
-        // Print to console
-        dataLoader.printSummary();
-        
     } catch (error) {
-        console.error('Error loading default file:', error);
-        showError('無法載入 test.xlsx: ' + error.message);
+        console.error('❌ Error loading file:', error);
+        showError('載入失敗: ' + error.message);
     } finally {
         showLoading(false);
     }
@@ -154,7 +109,10 @@ async function loadDefaultData() {
  * Display data summary
  */
 function displayDataSummary(fileName) {
-    if (!app.data) return;
+    if (!app.data) {
+        console.log('No data to display');
+        return;
+    }
     
     // Show summary section
     const summaryDiv = document.getElementById('dataSummary');
@@ -179,7 +137,9 @@ function displayDataSummary(fileName) {
     }
     
     // Log first few rows for debugging
-    console.log('First 3 rows of data:');
+    console.log('📊 Data Preview:');
+    console.log('Headers:', app.data.headers);
+    console.log('First 3 rows:');
     app.data.rows.slice(0, 3).forEach((row, index) => {
         console.log(`Row ${index + 1}:`, row);
     });
@@ -227,12 +187,37 @@ function updateElement(id, value) {
 // ========== Debug Functions ==========
 
 window.debugApp = {
+    // Get loaded data
     getData: () => app.data,
+    
+    // Get headers
     getHeaders: () => app.data ? app.data.headers : null,
+    
+    // Get rows
     getRows: () => app.data ? app.data.rows : null,
-    getFirstRow: () => app.data ? app.data.rows[0] : null,
+    
+    // Get specific row
+    getRow: (index) => app.data ? app.data.rows[index] : null,
+    
+    // Search columns by name
     searchColumn: (name) => {
         if (!app.data) return 'No data loaded';
         return app.data.headers.filter(h => h.includes(name));
+    },
+    
+    // Get app state
+    getState: () => app,
+    
+    // Check if dataLoader exists
+    checkLoader: () => {
+        console.log('DataLoader class:', typeof DataLoader);
+        console.log('dataLoader instance:', typeof dataLoader);
+        if (typeof dataLoader !== 'undefined') {
+            console.log('dataLoader object:', dataLoader);
+        }
     }
 };
+
+// Log initialization
+console.log('main.js loaded successfully');
+console.log('Type debugApp.checkLoader() to verify dataLoader');
